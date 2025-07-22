@@ -1,7 +1,0 @@
-streamlit
-requests
-spacy
-transformers
-gtts
-googletrans==4.0.0-rc1
-email-validator
