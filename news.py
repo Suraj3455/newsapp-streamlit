@@ -1,5 +1,3 @@
-# Full app.py with Email Input + Alert Per User (MongoDB removed)
-
 import streamlit as st
 import requests
 from textblob import TextBlob
@@ -19,28 +17,29 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 
+# NLTK & SpaCy setup
 nltk.download('vader_lexicon')
+nlp = spacy.load("en_core_web_sm")
 
-# Page Config
+# Streamlit config
 st.set_page_config(page_title="NewsPulse: AI Trending & Sentiment", layout="wide")
 
-# Session State
+# Session
 if 'bookmarks' not in st.session_state:
     st.session_state.bookmarks = []
 
-# Models and Tools
+# AI Models
 @st.cache_resource
 def load_summarizer():
     return pipeline("summarization", model="facebook/bart-large-cnn")
 
 summarizer = load_summarizer()
 vader_analyzer = SentimentIntensityAnalyzer()
-nlp = spacy.load("en_core_web_sm")
 translator = Translator()
 
-# Email Config (set these as environment variables in cloud hosting)
-EMAIL_SENDER = os.getenv("surajthorat415@gmail.com")
-EMAIL_PASSWORD = os.getenv("mkkfygjdubhxfjwi")
+# Email config
+EMAIL_SENDER = os.getenv("EMAIL_SENDER")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 def send_alert_email(user_email):
     if not user_email:
@@ -58,7 +57,7 @@ def send_alert_email(user_email):
     except Exception as e:
         st.error(f"❌ Email alert failed: {e}")
 
-# API Key
+# NewsAPI
 api_key = "88adf97bc6924ef7a83334bf4b08af0e"
 
 def fetch_news(category=None, keyword=None):
@@ -107,21 +106,19 @@ def translate_text(text, lang_code):
     except:
         return text
 
-# Sidebar Filters
+# Sidebar
 st.sidebar.title("🔍 Filter & Search News")
 category = st.sidebar.selectbox("Select News Category", ("general", "business", "sports", "technology", "entertainment"))
 keyword = st.sidebar.text_input("Or enter a Search Keyword:")
 lang_option = st.sidebar.selectbox("Translate Headlines To", ["English", "Hindi", "Marathi"])
 lang_map = {"English": "en", "Hindi": "hi", "Marathi": "mr"}
-
-# 📨 Email input for alerts
 user_email = st.sidebar.text_input("📧 Enter your email for alerts", placeholder="you@example.com")
 
 # Title
 st.markdown("# 📰 NewsPulse: Real-Time News Trends & Sentiment AI")
 st.markdown("###### Powered by NewsAPI, TextBlob, VADER, and BART AI Summarizer")
 
-# Fetch & Process News
+# Fetch News
 articles = fetch_news(category=category, keyword=keyword)
 sentiments_total = {'Positive': 0, 'Neutral': 0, 'Negative': 0}
 all_entities, timeline_data = [], []
@@ -141,14 +138,12 @@ for article in articles:
     entities = extract_entities(text)
     all_entities.extend(entities)
 
-# Trigger Email Alert (if too much negative sentiment)
 if sentiments_total['Negative'] > 5 and user_email:
     send_alert_email(user_email)
 
-# Charts and Stats
+# Display Summary
 st.markdown("## 📊 Overall Sentiment Distribution")
 total_articles = sum(sentiments_total.values())
-
 for sentiment, count in sentiments_total.items():
     percent = round((count / total_articles) * 100, 1) if total_articles else 0
     emoji = "🟢" if sentiment == "Positive" else "⚪" if sentiment == "Neutral" else "🔴"
@@ -222,6 +217,5 @@ if st.session_state.bookmarks:
     for bm in st.session_state.bookmarks:
         st.markdown(f"📰 [{bm.get('title')}]({bm.get('url')}) — *{bm.get('source', {}).get('name', 'Unknown')}*")
 
-# Footer
 st.markdown("---")
 st.write("Made with ❤️ by Suraj Thorat | Powered by NewsAPI, HuggingFace, VADER, TextBlob")
