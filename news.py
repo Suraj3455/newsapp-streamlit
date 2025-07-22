@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from gtts import gTTS
 from io import BytesIO
 import nltk
-import spacy
+
 from googletrans import Translator
 import os
 import smtplib
