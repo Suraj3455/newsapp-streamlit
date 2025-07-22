@@ -1,6 +1,7 @@
 streamlit
 requests
-spacy==3.5.4
+https://github.com/explosion/spacy/releases/download/v3.5.4/spacy-3.5.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.5.0/en_core_web_sm-3.5.0-py3-none-any.whl
 transformers[torch]==4.40.0
 gtts
 googletrans==4.0.0-rc1
@@ -9,5 +10,3 @@ nltk
 matplotlib
 wordcloud
 
-# SpaCy English model direct install
-https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.5.0/en_core_web_sm-3.5.0-py3-none-any.whl
