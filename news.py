@@ -185,8 +185,10 @@ if all_entities:
 st.markdown("## 🗞️ Latest News")
 for idx, article in enumerate(articles):
     with st.expander(f"📰 {translate_text(article.get('title', '') or '', lang_map[lang_option])}"):
-        if article.get("image"):
-    st.image(article["image"], use_container_width=True)
+        image_url = article.get("image")
+if image_url:
+    st.image(image_url, use_container_width=True)
+
 
 
         text = (article.get("title") or "") + " " + (article.get("description") or "")
