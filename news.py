@@ -67,12 +67,14 @@ from datetime import datetime
 
 from datetime import datetime
 
+from datetime import datetime
+
 def fetch_news(category=None, keyword=None):
     base_url = "https://newsapi.org/v2/"
     today = datetime.now().strftime("%Y-%m-%d")
-    
+
     if keyword:
-        url = f"{base_url}everything?apiKey={api_key}&q={keyword}&language=en&from={today}&sortBy=publishedAt"
+        url = f"{base_url}everything?apiKey={api_key}&q={keyword}&from={today}&language=en&sortBy=publishedAt"
     else:
         url = f"{base_url}top-headlines?apiKey={api_key}&language=en"
         if category:
@@ -80,6 +82,7 @@ def fetch_news(category=None, keyword=None):
     
     response = requests.get(url)
     return response.json().get("articles", [])
+
 
 
 # ------------------------- NLP -------------------------
