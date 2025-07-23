@@ -26,7 +26,8 @@ st.set_page_config(page_title="NewsPulse: AI Trending & Sentiment", layout="wide
 
 @st.cache_resource
 def load_summarizer():
-    return pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
+    return pipeline("summarization", model="Falconsai/text_summarization")
+
 
 @st.cache_resource
 def load_vader():
