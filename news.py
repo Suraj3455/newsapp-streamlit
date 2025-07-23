@@ -41,8 +41,8 @@ vader_analyzer = load_vader()
 translator = Translator()
 
 # ------------------------- EMAIL SETUP -------------------------
-EMAIL_SENDER = os.getenv("EMAIL_SENDER")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+EMAIL_SENDER = os.getenv("surajthorat415@gmail.com")
+EMAIL_PASSWORD = os.getenv("mkkfygjdubhxfjwi")
 
 def send_alert_email(user_email):
     if not user_email:
