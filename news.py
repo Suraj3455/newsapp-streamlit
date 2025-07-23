@@ -28,7 +28,6 @@ st.set_page_config(page_title="NewsPulse: AI Trending & Sentiment", layout="wide
 def load_summarizer():
     return pipeline("summarization", model="Falconsai/text_summarization")
 
-
 @st.cache_resource
 def load_vader():
     return SentimentIntensityAnalyzer()
@@ -57,7 +56,7 @@ def send_alert_email(user_email):
     except Exception as e:
         st.error(f"❌ Email alert failed: {e}")
 
-# NewsAPI
+# NewsAPI (Replace with working API key or dummy later)
 api_key = "380a2141d0b34d91931aa5a856a37d6f"
 
 def fetch_news(category=None, keyword=None, max_articles=10):
@@ -79,10 +78,12 @@ def analyze_sentiment_all(text):
     neg = round(vader_scores['neg'] * 100, 1)
     return blob_polarity, pos, neu, neg
 
+@st.cache_data(show_spinner=False)
 def generate_summary(text):
     if text and len(text) > 50:
         try:
-            summary = summarizer(text, max_length=120, min_length=50, do_sample=False)
+            text = text[:600]  # Trim text to speed up
+            summary = summarizer(text, max_length=120, min_length=40, do_sample=False)
             return summary[0]['summary_text']
         except:
             return text
@@ -116,7 +117,7 @@ user_email = st.sidebar.text_input("📧 Enter your email for alerts", placehold
 max_articles = st.sidebar.slider("Max articles to display", 5, 50, 10)
 
 st.markdown("# 📰 NewsPulse: Real-Time News Trends & Sentiment AI")
-st.markdown("###### Powered by NewsAPI, TextBlob, VADER, and DistilBART AI Summarizer")
+st.markdown("###### Powered by NewsAPI, TextBlob, VADER, and Falcon Summarizer")
 
 # Fetch News
 articles = fetch_news(category=category, keyword=keyword, max_articles=max_articles)
@@ -125,6 +126,8 @@ all_entities, timeline_data = [], []
 
 for article in articles:
     text = (article.get("title") or "") + " " + (article.get("description") or "")
+    if not text.strip():
+        continue
     blob_polarity, pos, neu, neg = analyze_sentiment_all(text)
     timeline_data.append((article.get("publishedAt", "")[:10], blob_polarity))
 
@@ -151,8 +154,11 @@ for sentiment, count in sentiments_total.items():
 
 # Timeline
 st.markdown("## 📈 Sentiment Timeline")
-timeline_df = pd.DataFrame(timeline_data, columns=["Date", "Polarity"]).groupby("Date").mean()
-st.line_chart(timeline_df)
+if timeline_data:
+    timeline_df = pd.DataFrame(timeline_data, columns=["Date", "Polarity"]).groupby("Date").mean()
+    st.line_chart(timeline_df)
+else:
+    st.warning("No data for timeline chart.")
 
 # Entities
 if all_entities:
@@ -163,29 +169,32 @@ if all_entities:
 
 # News Results
 st.markdown("## 🗞️ Latest News")
-for idx, article in enumerate(articles):
-    with st.expander(f"📰 {translate_text(article.get('title', ''), lang_map[lang_option])}"):
-        if article.get("urlToImage"):
-            st.image(article["urlToImage"], use_container_width=True)
+if not articles:
+    st.warning("No news articles found. Try a different category or wait for API reset.")
+else:
+    for idx, article in enumerate(articles):
+        with st.expander(f"📰 {translate_text(article.get('title', ''), lang_map[lang_option])}"):
+            if article.get("urlToImage"):
+                st.image(article["urlToImage"], use_container_width=True)
 
-        text = (article.get("title") or "") + " " + (article.get("description") or "")
-        blob_polarity, pos, neu, neg = analyze_sentiment_all(text)
+            text = (article.get("title") or "") + " " + (article.get("description") or "")
+            blob_polarity, pos, neu, neg = analyze_sentiment_all(text)
 
-        st.write("**Sentiment Analysis:**")
-        st.write(f"🟢 Positive: {pos}% | ⚪ Neutral: {neu}% | 🔴 Negative: {neg}%")
-        st.write(f"TextBlob Polarity: {round(blob_polarity*100, 1)}%")
+            st.write("**Sentiment Analysis:**")
+            st.write(f"🟢 Positive: {pos}% | ⚪ Neutral: {neu}% | 🔴 Negative: {neg}%")
+            st.write(f"TextBlob Polarity: {round(blob_polarity*100, 1)}%")
 
-        if st.button("📖 Show Summary", key=f"summary_{idx}"):
-            summary = generate_summary(article.get("content") or article.get("description") or "")
-            if lang_option != "English":
-                summary = translate_text(summary, lang_map[lang_option])
-            st.success(summary)
-            st.markdown("**🎧 Listen Summary:**")
-            audio_fp = text_to_speech(summary, lang_map[lang_option])
-            st.audio(audio_fp, format="audio/mp3")
+            if st.button("📖 Show Summary", key=f"summary_{idx}"):
+                summary = generate_summary(article.get("content") or article.get("description") or "")
+                if lang_option != "English":
+                    summary = translate_text(summary, lang_map[lang_option])
+                st.success(summary)
+                st.markdown("**🎧 Listen Summary:**")
+                audio_fp = text_to_speech(summary, lang_map[lang_option])
+                st.audio(audio_fp, format="audio/mp3")
 
-        st.markdown(f"[🔗 Read Full Article]({article.get('url')})")
-        st.caption(f"Published by: {article.get('source', {}).get('name', 'Unknown')} | Date: {article.get('publishedAt', 'N/A')}")
+            st.markdown(f"[🔗 Read Full Article]({article.get('url')})")
+            st.caption(f"Published by: {article.get('source', {}).get('name', 'Unknown')} | Date: {article.get('publishedAt', 'N/A')}")
 
 # WordCloud
 if total_articles > 0:
