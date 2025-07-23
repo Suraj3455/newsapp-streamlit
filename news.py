@@ -61,27 +61,26 @@ def send_alert_email(user_email):
         st.error(f"❌ Email alert failed: {e}")
 
 # ------------------------- API -------------------------
-api_key = "380a2141d0b34d91931aa5a856a37d6f"
+#api_key = "380a2141d0b34d91931aa5a856a37d6f"
 
-from datetime import datetime
+def fetch_news_gnews(keyword=None, max_articles=10):
+    api_key = "2673e2462b413c6b23e6db0e295287b7"
+    base_url = "https://gnews.io/api/v4/search"
 
-from datetime import datetime
+    if not keyword:
+        keyword = "latest"
 
-from datetime import datetime
+    params = {
+        "q": keyword,
+        "lang": "en",
+        "token": api_key,
+        "max": max_articles,
+        "sort_by": "publishedAt"
+    }
 
-def fetch_news(category=None, keyword=None):
-    base_url = "https://newsapi.org/v2/"
-    today = datetime.now().strftime("%Y-%m-%d")
-
-    if keyword:
-        url = f"{base_url}everything?apiKey={api_key}&q={keyword}&from={today}&language=en&sortBy=publishedAt"
-    else:
-        url = f"{base_url}top-headlines?apiKey={api_key}&language=en"
-        if category:
-            url += f"&category={category}"
-    
-    response = requests.get(url)
+    response = requests.get(base_url, params=params)
     return response.json().get("articles", [])
+
 
 
 
