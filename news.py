@@ -138,7 +138,8 @@ st.markdown("# 📰 NewsPulse: Real-Time News Trends & Sentiment AI")
 st.markdown("###### Powered by NewsAPI, TextBlob, VADER, and DistilBART AI Summarizer")
 
 # Fetch News
-articles = fetch_news(category=category, keyword=keyword)[:max_articles]
+articles = fetch_news_gnews(keyword=keyword, max_articles=max_articles)
+
 sentiments_total = {'Positive': 0, 'Neutral': 0, 'Negative': 0}
 all_entities, timeline_data = [], []
 
