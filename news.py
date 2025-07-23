@@ -57,7 +57,7 @@ def send_alert_email(user_email):
         st.error(f"❌ Email alert failed: {e}")
 
 # NewsAPI
-api_key = "88adf97bc6924ef7a83334bf4b08af0e"
+api_key = "380a2141d0b34d91931aa5a856a37d6f"
 
 def fetch_news(category=None, keyword=None, max_articles=10):
     base_url = "https://newsapi.org/v2/"
