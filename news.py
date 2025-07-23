@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 from textblob import TextBlob
 from transformers import pipeline
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import Counter
 import pandas as pd
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
@@ -56,19 +56,46 @@ def send_alert_email(user_email):
     except Exception as e:
         st.error(f"❌ Email alert failed: {e}")
 
-# NewsAPI (Replace with working API key or dummy later)
+# NewsAPI
 api_key = "380a2141d0b34d91931aa5a856a37d6f"
 
 def fetch_news(category=None, keyword=None, max_articles=10):
     base_url = "https://newsapi.org/v2/"
+    now = datetime.utcnow()
+    recent_hours = 6  # Show only articles from the last 6 hours
+    from_time = (now - timedelta(hours=recent_hours)).isoformat("T") + "Z"
+
     if keyword:
-        url = f"{base_url}everything?apiKey={api_key}&q={keyword}&language=en&sortBy=publishedAt&pageSize={max_articles}"
+        url = (
+            f"{base_url}everything?apiKey={api_key}"
+            f"&q={keyword}&language=en"
+            f"&from={from_time}&sortBy=publishedAt&pageSize=100"
+        )
     else:
-        url = f"{base_url}top-headlines?apiKey={api_key}&language=en&pageSize={max_articles}"
+        url = (
+            f"{base_url}top-headlines?apiKey={api_key}&language=en&pageSize=100"
+        )
         if category:
             url += f"&category={category}"
+
     response = requests.get(url)
-    return response.json().get("articles", [])
+    articles = response.json().get("articles", [])
+
+    # Manually filter if using top-headlines
+    if not keyword:
+        filtered_articles = []
+        for article in articles:
+            published_at = article.get("publishedAt")
+            if published_at:
+                try:
+                    pub_dt = datetime.strptime(published_at, "%Y-%m-%dT%H:%M:%SZ")
+                    if (now - pub_dt) <= timedelta(hours=recent_hours):
+                        filtered_articles.append(article)
+                except:
+                    continue
+        articles = filtered_articles
+
+    return articles[:max_articles]
 
 def analyze_sentiment_all(text):
     blob_polarity = TextBlob(text).sentiment.polarity
@@ -82,7 +109,7 @@ def analyze_sentiment_all(text):
 def generate_summary(text):
     if text and len(text) > 50:
         try:
-            text = text[:600]  # Trim text to speed up
+            text = text[:600]
             summary = summarizer(text, max_length=120, min_length=40, do_sample=False)
             return summary[0]['summary_text']
         except:
@@ -107,7 +134,7 @@ def translate_text(text, lang_code):
     except:
         return text
 
-# UI Sidebar
+# Sidebar
 st.sidebar.title("🔍 Filter & Search News")
 category = st.sidebar.selectbox("Select News Category", ("general", "business", "sports", "technology", "entertainment"))
 keyword = st.sidebar.text_input("Or enter a Search Keyword:")
