@@ -16,31 +16,29 @@ from googletrans import Translator
 import os
 import smtplib
 from email.mime.text import MIMEText
+import gc
 
-# NLTK & SpaCy setup
-nltk.download('vader_lexicon')
-import en_core_web_sm
-nlp = en_core_web_sm.load()
+# Setup
+nltk.download("vader_lexicon")
+nlp = spacy.load("en_core_web_sm")
 
-# Streamlit config
 st.set_page_config(page_title="NewsPulse: AI Trending & Sentiment", layout="wide")
 
-# Session
-if 'bookmarks' not in st.session_state:
-    st.session_state.bookmarks = []
-
-# AI Models
 @st.cache_resource
 def load_summarizer():
-    return pipeline("summarization", model="facebook/bart-large-cnn")
+    return pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
+
+@st.cache_resource
+def load_vader():
+    return SentimentIntensityAnalyzer()
 
 summarizer = load_summarizer()
-vader_analyzer = SentimentIntensityAnalyzer()
+vader_analyzer = load_vader()
 translator = Translator()
 
-# Email config
-EMAIL_SENDER = os.getenv("EMAIL_SENDER")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+# Email Config
+EMAIL_SENDER = os.getenv("EMAIL_SENDER") or "your_email@gmail.com"
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD") or "your_app_password"
 
 def send_alert_email(user_email):
     if not user_email:
@@ -61,12 +59,12 @@ def send_alert_email(user_email):
 # NewsAPI
 api_key = "88adf97bc6924ef7a83334bf4b08af0e"
 
-def fetch_news(category=None, keyword=None):
+def fetch_news(category=None, keyword=None, max_articles=10):
     base_url = "https://newsapi.org/v2/"
     if keyword:
-        url = f"{base_url}everything?apiKey={api_key}&q={keyword}&language=en&sortBy=publishedAt"
+        url = f"{base_url}everything?apiKey={api_key}&q={keyword}&language=en&sortBy=publishedAt&pageSize={max_articles}"
     else:
-        url = f"{base_url}top-headlines?apiKey={api_key}&language=en"
+        url = f"{base_url}top-headlines?apiKey={api_key}&language=en&pageSize={max_articles}"
         if category:
             url += f"&category={category}"
     response = requests.get(url)
@@ -107,20 +105,20 @@ def translate_text(text, lang_code):
     except:
         return text
 
-# Sidebar
+# UI Sidebar
 st.sidebar.title("🔍 Filter & Search News")
 category = st.sidebar.selectbox("Select News Category", ("general", "business", "sports", "technology", "entertainment"))
 keyword = st.sidebar.text_input("Or enter a Search Keyword:")
 lang_option = st.sidebar.selectbox("Translate Headlines To", ["English", "Hindi", "Marathi"])
 lang_map = {"English": "en", "Hindi": "hi", "Marathi": "mr"}
 user_email = st.sidebar.text_input("📧 Enter your email for alerts", placeholder="you@example.com")
+max_articles = st.sidebar.slider("Max articles to display", 5, 50, 10)
 
-# Title
 st.markdown("# 📰 NewsPulse: Real-Time News Trends & Sentiment AI")
-st.markdown("###### Powered by NewsAPI, TextBlob, VADER, and BART AI Summarizer")
+st.markdown("###### Powered by NewsAPI, TextBlob, VADER, and DistilBART AI Summarizer")
 
 # Fetch News
-articles = fetch_news(category=category, keyword=keyword)
+articles = fetch_news(category=category, keyword=keyword, max_articles=max_articles)
 sentiments_total = {'Positive': 0, 'Neutral': 0, 'Negative': 0}
 all_entities, timeline_data = [], []
 
@@ -142,7 +140,7 @@ for article in articles:
 if sentiments_total['Negative'] > 5 and user_email:
     send_alert_email(user_email)
 
-# Display Summary
+# Sentiment Display
 st.markdown("## 📊 Overall Sentiment Distribution")
 total_articles = sum(sentiments_total.values())
 for sentiment, count in sentiments_total.items():
@@ -150,19 +148,19 @@ for sentiment, count in sentiments_total.items():
     emoji = "🟢" if sentiment == "Positive" else "⚪" if sentiment == "Neutral" else "🔴"
     st.write(f"{emoji} {sentiment}: {percent}%")
 
-# Sentiment Timeline
+# Timeline
 st.markdown("## 📈 Sentiment Timeline")
 timeline_df = pd.DataFrame(timeline_data, columns=["Date", "Polarity"]).groupby("Date").mean()
 st.line_chart(timeline_df)
 
-# Trending Entities
+# Entities
 if all_entities:
     st.markdown("## 🔍 Trending Entities")
     entity_counts = dict(Counter(all_entities))
     entity_df = pd.DataFrame(entity_counts.items(), columns=["Entity", "Count"]).sort_values(by="Count", ascending=False)
     st.dataframe(entity_df.head(10))
 
-# News Display
+# News Results
 st.markdown("## 🗞️ Latest News")
 for idx, article in enumerate(articles):
     with st.expander(f"📰 {translate_text(article.get('title', ''), lang_map[lang_option])}"):
@@ -188,13 +186,6 @@ for idx, article in enumerate(articles):
         st.markdown(f"[🔗 Read Full Article]({article.get('url')})")
         st.caption(f"Published by: {article.get('source', {}).get('name', 'Unknown')} | Date: {article.get('publishedAt', 'N/A')}")
 
-        if st.button("⭐ Bookmark Article", key=f"bookmark_{idx}"):
-            if article not in st.session_state.bookmarks:
-                st.session_state.bookmarks.append(article)
-                st.success("Added to bookmarks!")
-            else:
-                st.info("Already in bookmarks.")
-
 # WordCloud
 if total_articles > 0:
     st.markdown("## ☁️ WordCloud of Headlines")
@@ -205,7 +196,7 @@ if total_articles > 0:
     ax.axis("off")
     st.pyplot(fig)
 
-# Download Report
+# Download
 if st.button("⬇️ Download Sentiment Report"):
     df = pd.DataFrame(articles)
     df.to_csv("sentiment_report.csv", index=False)
@@ -213,10 +204,12 @@ if st.button("⬇️ Download Sentiment Report"):
         st.download_button("Download CSV", f, file_name="report.csv")
 
 # Bookmarks
-if st.session_state.bookmarks:
+if st.session_state.get("bookmarks"):
     st.markdown("## ⭐ Bookmarked Articles")
     for bm in st.session_state.bookmarks:
         st.markdown(f"📰 [{bm.get('title')}]({bm.get('url')}) — *{bm.get('source', {}).get('name', 'Unknown')}*")
 
 st.markdown("---")
 st.write("Made with ❤️ by Suraj Thorat | Powered by NewsAPI, HuggingFace, VADER, TextBlob")
+
+gc.collect()
