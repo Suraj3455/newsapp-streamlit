@@ -9,5 +9,3 @@ textblob
 nltk
 matplotlib
 wordcloud
-pymongo
-TfidfVectorizer
