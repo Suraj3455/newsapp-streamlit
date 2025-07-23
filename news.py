@@ -11,36 +11,34 @@ import matplotlib.pyplot as plt
 from gtts import gTTS
 from io import BytesIO
 import nltk
+import spacy
 from googletrans import Translator
 import os
 import smtplib
 from email.mime.text import MIMEText
-import gc
 
-# ------------------------- SETUP -------------------------
+# NLTK & SpaCy setup
+nltk.download('vader_lexicon')
+import en_core_web_sm
+nlp = en_core_web_sm.load()
+
+# Streamlit config
 st.set_page_config(page_title="NewsPulse: AI Trending & Sentiment", layout="wide")
 
-# Caching models
+# Session
+if 'bookmarks' not in st.session_state:
+    st.session_state.bookmarks = []
+
+# AI Models
 @st.cache_resource
 def load_summarizer():
-    return pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
-
-@st.cache_resource
-def load_nlp():
-    import spacy
-    return spacy.load("en_core_web_sm")
-
-@st.cache_resource
-def load_vader():
-    nltk.download("vader_lexicon")
-    return SentimentIntensityAnalyzer()
+    return pipeline("summarization", model="facebook/bart-large-cnn")
 
 summarizer = load_summarizer()
-nlp = load_nlp()
-vader_analyzer = load_vader()
+vader_analyzer = SentimentIntensityAnalyzer()
 translator = Translator()
 
-# ------------------------- EMAIL SETUP -------------------------
+# Email config
 EMAIL_SENDER = os.getenv("EMAIL_SENDER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
@@ -60,8 +58,8 @@ def send_alert_email(user_email):
     except Exception as e:
         st.error(f"❌ Email alert failed: {e}")
 
-# ------------------------- API -------------------------
-api_key = "380a2141d0b34d91931aa5a856a37d6f"
+# NewsAPI
+api_key = "88adf97bc6924ef7a83334bf4b08af0e"
 
 def fetch_news(category=None, keyword=None):
     base_url = "https://newsapi.org/v2/"
@@ -74,7 +72,6 @@ def fetch_news(category=None, keyword=None):
     response = requests.get(url)
     return response.json().get("articles", [])
 
-# ------------------------- NLP -------------------------
 def analyze_sentiment_all(text):
     blob_polarity = TextBlob(text).sentiment.polarity
     vader_scores = vader_analyzer.polarity_scores(text)
@@ -110,10 +107,6 @@ def translate_text(text, lang_code):
     except:
         return text
 
-# ------------------------- UI & LOGIC -------------------------
-if 'bookmarks' not in st.session_state:
-    st.session_state.bookmarks = []
-
 # Sidebar
 st.sidebar.title("🔍 Filter & Search News")
 category = st.sidebar.selectbox("Select News Category", ("general", "business", "sports", "technology", "entertainment"))
@@ -121,14 +114,13 @@ keyword = st.sidebar.text_input("Or enter a Search Keyword:")
 lang_option = st.sidebar.selectbox("Translate Headlines To", ["English", "Hindi", "Marathi"])
 lang_map = {"English": "en", "Hindi": "hi", "Marathi": "mr"}
 user_email = st.sidebar.text_input("📧 Enter your email for alerts", placeholder="you@example.com")
-max_articles = st.sidebar.slider("Max articles to display", 5, 50, 10)
 
 # Title
 st.markdown("# 📰 NewsPulse: Real-Time News Trends & Sentiment AI")
-st.markdown("###### Powered by NewsAPI, TextBlob, VADER, and DistilBART AI Summarizer")
+st.markdown("###### Powered by NewsAPI, TextBlob, VADER, and BART AI Summarizer")
 
 # Fetch News
-articles = fetch_news(category=category, keyword=keyword)[:max_articles]
+articles = fetch_news(category=category, keyword=keyword)
 sentiments_total = {'Positive': 0, 'Neutral': 0, 'Negative': 0}
 all_entities, timeline_data = [], []
 
@@ -173,7 +165,7 @@ if all_entities:
 # News Display
 st.markdown("## 🗞️ Latest News")
 for idx, article in enumerate(articles):
-    with st.expander(f"📰 {translate_text(article.get('title', '') or '', lang_map[lang_option])}"):
+    with st.expander(f"📰 {translate_text(article.get('title', ''), lang_map[lang_option])}"):
         if article.get("urlToImage"):
             st.image(article["urlToImage"], use_container_width=True)
 
@@ -228,6 +220,3 @@ if st.session_state.bookmarks:
 
 st.markdown("---")
 st.write("Made with ❤️ by Suraj Thorat | Powered by NewsAPI, HuggingFace, VADER, TextBlob")
-
-# Final memory cleanup
-gc.collect()
