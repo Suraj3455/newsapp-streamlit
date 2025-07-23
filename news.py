@@ -18,14 +18,12 @@ from email.mime.text import MIMEText
 import gc
 
 # ------------------------- SETUP -------------------------
-# Config
 st.set_page_config(page_title="NewsPulse: AI Trending & Sentiment", layout="wide")
 
 # Caching models
 @st.cache_resource
 def load_summarizer():
     return pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
-
 
 @st.cache_resource
 def load_nlp():
@@ -117,19 +115,20 @@ if 'bookmarks' not in st.session_state:
     st.session_state.bookmarks = []
 
 # Sidebar
-st.sidebar.title(u"🔍 Filter & Search News")
+st.sidebar.title("🔍 Filter & Search News")
 category = st.sidebar.selectbox("Select News Category", ("general", "business", "sports", "technology", "entertainment"))
 keyword = st.sidebar.text_input("Or enter a Search Keyword:")
 lang_option = st.sidebar.selectbox("Translate Headlines To", ["English", "Hindi", "Marathi"])
 lang_map = {"English": "en", "Hindi": "hi", "Marathi": "mr"}
 user_email = st.sidebar.text_input("📧 Enter your email for alerts", placeholder="you@example.com")
+max_articles = st.sidebar.slider("Max articles to display", 5, 50, 10)
 
 # Title
 st.markdown("# 📰 NewsPulse: Real-Time News Trends & Sentiment AI")
-st.markdown("###### Powered by NewsAPI, TextBlob, VADER, and BART AI Summarizer")
+st.markdown("###### Powered by NewsAPI, TextBlob, VADER, and DistilBART AI Summarizer")
 
 # Fetch News
-articles = fetch_news(category=category, keyword=keyword)
+articles = fetch_news(category=category, keyword=keyword)[:max_articles]
 sentiments_total = {'Positive': 0, 'Neutral': 0, 'Negative': 0}
 all_entities, timeline_data = [], []
 
@@ -230,5 +229,5 @@ if st.session_state.bookmarks:
 st.markdown("---")
 st.write("Made with ❤️ by Suraj Thorat | Powered by NewsAPI, HuggingFace, VADER, TextBlob")
 
-# Cleanup
+# Final memory cleanup
 gc.collect()
