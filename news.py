@@ -65,24 +65,22 @@ api_key = "380a2141d0b34d91931aa5a856a37d6f"
 
 from datetime import datetime
 
+from datetime import datetime
+
 def fetch_news(category=None, keyword=None):
-    api_key = "YOUR_GNEWS_API_KEY"  # Replace this with your actual key
-    base_url = "https://gnews.io/api/v4/top-headlines"
-
-    params = {
-        "token": api_key,
-        "lang": "en",
-        "max": 20,  # Limit results to speed up and reduce load
-    }
-
+    base_url = "https://newsapi.org/v2/"
+    today = datetime.now().strftime("%Y-%m-%d")
+    
     if keyword:
-        base_url = "https://gnews.io/api/v4/search"
-        params["q"] = keyword
-    elif category:
-        params["topic"] = category
-
-    response = requests.get(base_url, params=params)
+        url = f"{base_url}everything?apiKey={api_key}&q={keyword}&language=en&from={today}&sortBy=publishedAt"
+    else:
+        url = f"{base_url}top-headlines?apiKey={api_key}&language=en"
+        if category:
+            url += f"&category={category}"
+    
+    response = requests.get(url)
     return response.json().get("articles", [])
+
 
 # ------------------------- NLP -------------------------
 def analyze_sentiment_all(text):
