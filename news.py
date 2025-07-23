@@ -114,7 +114,8 @@ def translate_text(text, lang_code):
 if 'bookmarks' not in st.session_state:
     st.session_state.bookmarks = []
 
-st.sidebar.title("\ud83d\udd0d Filter & Search News")
+st.sidebar.title("🔍 Filter & Search News")  # Emoji properly rendered
+
 category = st.sidebar.selectbox("Select News Category", ("general", "business", "sports", "technology", "entertainment"))
 keyword = st.sidebar.text_input("Or enter a Search Keyword:")
 lang_option = st.sidebar.selectbox("Translate Headlines To", ["English", "Hindi", "Marathi"])
