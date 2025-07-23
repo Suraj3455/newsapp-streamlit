@@ -62,7 +62,7 @@ api_key = "88adf97bc6924ef7a83334bf4b08af0e"
 def fetch_news(category=None, keyword=None, max_articles=10):
     base_url = "https://newsapi.org/v2/"
     now = datetime.utcnow()
-    recent_hours = 6  # Show only articles from the last 6 hours
+    recent_hours = 12  # Show only articles from the last 6 hours
     from_time = (now - timedelta(hours=recent_hours)).isoformat("T") + "Z"
 
     if keyword:
